@@ -1,0 +1,42 @@
+#!/usr/bin/python3
+
+import csv
+import glob
+import os
+
+# from tools import data_util, generate_full_data
+
+CSV_FILE = "HealthMap_H1N1_Global_All_Languages_2009-2012.csv"
+SELF_DIR = os.path.dirname(os.path.realpath(__file__))
+
+FIELDS = {
+  'country': 1
+}
+
+def clean():
+    for daily in glob.glob("d/*.json"):
+        os.remove(daily)
+    for country in glob.glob("c/*.json"):
+        os.remove(country)
+
+def process_csv_file(csv_file_path):
+    with open(csv_file_path) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            print(row[FIELDS["country"]])
+
+def update():
+    # generate_full_data.generate_data(
+        # os.path.join(SELF_DIR, "d"),
+        # os.path.join(SELF_DIR, "c"),
+        # overwrite=True, quiet=False)
+    # data_util.retrieve_generable_data(".", should_overwrite=True, quiet=False)
+    # Note sure why there are two lines merged together for a couple of locations
+    # os.system("./sanitize_location_info")
+    process_csv_file(CSV_FILE)
+    # Add any new daily file.
+    os.system("git add d/*.json")
+
+if __name__ == "__main__":
+    clean()
+    update()
