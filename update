@@ -4,13 +4,31 @@ import csv
 import glob
 import os
 
+from tools import country_converter
 # from tools import data_util, generate_full_data
 
 CSV_FILE = "HealthMap_H1N1_Global_All_Languages_2009-2012.csv"
+LAT_LNG_DECIMAL_PLACES = 4
 SELF_DIR = os.path.dirname(os.path.realpath(__file__))
 
 FIELDS = {
-  'country': 1
+    "location": 0,
+    "country": 1,
+    "disease": 2,
+    "species": 3,
+    "language": 4,
+    "whatisthis": 5,
+    "article-title": 6,
+    "source-url": 7,
+    "datetime": 8,
+    "whatisthis2": 9,
+    "whatisthis2": 10,
+    "whatisthis3": 11,
+    "whatisthis3": 12,
+    "whatisthis4": 13,
+    "whatisthis5": 14,
+    "longitude": 15,
+    "latitude": 16,
 }
 
 def clean():
@@ -19,11 +37,31 @@ def clean():
     for country in glob.glob("c/*.json"):
         os.remove(country)
 
+def round_latlng(l):
+    if "." not in l:
+        l += ".0000"
+    (intpart, dec) = l.split(".")
+    if len(dec) > LAT_LNG_DECIMAL_PLACES:
+        # Just truncate
+        dec = dec[0:4]
+    elif len(dec) < LAT_LNG_DECIMAL_PLACES:
+        dec += "0" * (LAT_LNG_DECIMAL_PLACES - len(dec))
+    return intpart + "." + dec
+
+def make_geoid(lat, lng):
+    return round_latlng(lat) + "|" + round_latlng(lng)
+
+def process_single_row(r):
+    geoid = make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
+    print(geoid)
+    country_code = country_converter.code_from_name(r[FIELDS["country"]])
+    return None
+
 def process_csv_file(csv_file_path):
     with open(csv_file_path) as f:
         reader = csv.reader(f)
         for row in reader:
-            print(row[FIELDS["country"]])
+            process_single_row(row)
 
 def update():
     # generate_full_data.generate_data(
