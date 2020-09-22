@@ -22,11 +22,11 @@ FIELDS = {
     "source-url": 7,
     "datetime": 8,
     "alert-tag": 9,
-    "suspected-cases": 10,
-    "suspected-deaths": 11,
+    "suspected-cases": 10,   # Can be ignored for now
+    "suspected-deaths": 11,  # Can be ignored for now
     "confirmed-cases": 12,
     "confirmed-deaths": 13,
-    "ruled-out": 14,
+    "ruled-out": 14,         # Rarely used for this disease
     "longitude": 15,
     "latitude": 16,
 }
