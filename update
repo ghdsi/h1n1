@@ -3,8 +3,8 @@
 import csv
 import glob
 import os
+import sys
 
-from tools import country_converter
 # from tools import data_util, generate_full_data
 
 CSV_FILE = "HealthMap_H1N1_Global_All_Languages_2009-2012.csv"
@@ -17,19 +17,26 @@ FIELDS = {
     "disease": 2,
     "species": 3,
     "language": 4,
-    "whatisthis": 5,
+    "alert-id": 5,
     "article-title": 6,
     "source-url": 7,
     "datetime": 8,
-    "whatisthis2": 9,
-    "whatisthis2": 10,
-    "whatisthis3": 11,
-    "whatisthis3": 12,
-    "whatisthis4": 13,
-    "whatisthis5": 14,
+    "alert-tag": 9,
+    "suspected-cases": 10,
+    "suspected-deaths": 11,
+    "confirmed-cases": 12,
+    "confirmed-deaths": 13,
+    "ruled-out": 14,
     "longitude": 15,
     "latitude": 16,
 }
+
+def check_for_common_repo():
+    if not os.path.exists("../common"):
+        print("Please clone the 'common' repo as a sibling of this one:")
+        print("cd .. && git clone git@github.com:globaldothealth/common.git")
+        return False
+    return True
 
 def clean():
     for daily in glob.glob("d/*.json"):
@@ -76,5 +83,8 @@ def update():
     os.system("git add d/*.json")
 
 if __name__ == "__main__":
-    clean()
-    update()
+    if check_for_common_repo():
+        sys.path.insert(0, "../common/tools")
+        import country_converter
+        clean()
+        update()
