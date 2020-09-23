@@ -58,17 +58,62 @@ def round_latlng(l):
 def make_geoid(lat, lng):
     return round_latlng(lat) + "|" + round_latlng(lng)
 
-def process_single_row(r):
+def iso_date_from_datetime(dt):
+    isodate = dt.split(" ")[0]
+    assert isodate.count("-") == 2
+    assert isodate.startswith("20")
+    return isodate
+
+def process_single_row(r, master_data, current_totals):
     geoid = make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
-    print(geoid)
     country_code = country_converter.code_from_name(r[FIELDS["country"]])
-    return None
+    date = iso_date_from_datetime(r[FIELDS["datetime"]])
+    if not geoid:
+        print("WARNING No lat/lng for this row: " + str(r))
+        return
+    if not date:
+        print("WARNING No date for this row: " + str(r))
+        return
+    if not country_code:
+        print("WARNING Counldn't infer country in row " + str(r))
+        return
+    if date not in master_data:
+        master_data[date] = {}
+    if geoid not in master_data[date]:
+        master_data[date][geoid] = {"new": 0, "total": 0}
+    if geoid not in current_totals:
+        current_totals[geoid] = 0
+    cases = r[FIELDS["confirmed-cases"]].strip()
+    if cases != "":
+        master_data[date][geoid]["new"] += int(cases)
+        current_totals[geoid] += int(cases)
+        master_data[date][geoid]["total"] = current_totals[geoid]
+    # print(geoid + " - " + date + " - " + country_code)
+    return
+
+def row_chronological_sort_function(row):
+    return iso_date_from_datetime(row[FIELDS["datetime"]])
+
+def sort_rows_chronologically(rows):
+    rows.sort(key=row_chronological_sort_function)
+    return rows
 
 def process_csv_file(csv_file_path):
+    master_data = {}
+    current_totals = {}
+    all_rows = []
     with open(csv_file_path) as f:
         reader = csv.reader(f)
         for row in reader:
-            process_single_row(row)
+            all_rows.append(row)
+    sorted_rows = sort_rows_chronologically(all_rows)
+    for row in sorted_rows:
+        process_single_row(row, master_data, current_totals)
+    grand_total = 0
+    for total, _ in enumerate(current_totals):
+        grand_total += total
+    print("Processed a total of " + str(grand_total) + " cases")
+    return master_data
 
 def update():
     # generate_full_data.generate_data(
@@ -78,7 +123,8 @@ def update():
     # data_util.retrieve_generable_data(".", should_overwrite=True, quiet=False)
     # Note sure why there are two lines merged together for a couple of locations
     # os.system("./sanitize_location_info")
-    process_csv_file(CSV_FILE)
+    master_data = process_csv_file(CSV_FILE)
+    # print(master_data)
     # Add any new daily file.
     os.system("git add d/*.json")
 
