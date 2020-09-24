@@ -125,13 +125,25 @@ def output_globals(master_data, totals):
     with open("globals.json", "w") as f:
         f.write(json.dumps([globals_obj]))
 
+def output_aggregates(master_data, location_info, out_file):
+    aggregates = {}
+    dates = sorted(master_data.keys())
+    for d in dates:
+        aggregates[d] = []
+        country_acc_for_today = {}
+        for geoid in master_data[d]:
+            country_code = location_info[geoid][-1]
+            if country_code not in country_acc_for_today:
+                country_acc_for_today[country_code] = 0
+            country_acc_for_today[country_code] += master_data[d][geoid]["total"]
+        for c in country_acc_for_today:
+            aggregates[d].append(
+                {"cum_conf": country_acc_for_today[c], "deaths": 0, "code": c})
+    with open(out_file, "w") as f:
+        f.write(json.dumps(aggregates))
+
 def update():
-    # generate_full_data.generate_data(
-        # os.path.join(SELF_DIR, "d"),
-        # os.path.join(SELF_DIR, "c"),
-        # overwrite=True, quiet=False)
-    # data_util.retrieve_generable_data(".", should_overwrite=True, quiet=False)
-    # Note sure why there are two lines merged together for a couple of locations
+
     # os.system("./sanitize_location_info")
 
     all_rows = []
@@ -142,9 +154,11 @@ def update():
     master_data = process_csv_data(all_rows)
     # location_data = extra
     output_daily_slices(master_data)
-    location_info_extractor.extract_location_info_from_csv(
+    location_info = location_info_extractor.extract_location_info_from_csv(
         all_rows, FIELDS["country"], FIELDS["location"],
-        FIELDS["latitude"], FIELDS["longitude"], "location_info.data")
+        FIELDS["latitude"], FIELDS["longitude"])
+    location_info_extractor.output_location_info(location_info, "location_info.data")
+    output_aggregates(master_data, location_info, "aggregate.json")
     # print(master_data)
     # Add any new daily file.
     os.system("git add d/*.json")
