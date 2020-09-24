@@ -50,8 +50,16 @@ def iso_date_from_datetime(dt):
     assert isodate.startswith("20")
     return isodate
 
+def copy_over(master_data, new_day, current_totals):
+    master_data[new_day] = {}
+    for country in current_totals:
+        master_data[new_day][country] = {"total": current_totals[country]}
+
 def process_single_row(r, master_data, current_totals):
     geoid = geo_util.make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
+    debug = False
+    if geoid == '31.2409|-99.2286':
+        debug = True
     country_code = country_converter.code_from_name(r[FIELDS["country"]])
     date = iso_date_from_datetime(r[FIELDS["datetime"]])
     if not geoid:
@@ -63,17 +71,26 @@ def process_single_row(r, master_data, current_totals):
     if not country_code:
         print("WARNING Counldn't infer country in row " + str(r))
         return
-    if date not in master_data:
-        master_data[date] = {}
-    if geoid not in master_data[date]:
-        master_data[date][geoid] = {"new": 0, "total": 0}
     if geoid not in current_totals:
+        if debug:
+            print("geoid not in current_totals")
         current_totals[geoid] = 0
+    if date not in master_data:
+        copy_over(master_data, date, current_totals)
+    if geoid not in master_data[date]:
+        if debug:
+            print("geoid not in master data for date " + date)
+        master_data[date][geoid] = {}
     cases = r[FIELDS["confirmed-cases"]].strip()
+    master_data[date][geoid]["total"] = current_totals[geoid]
+    if cases == "":
+        master_data[date][geoid]["new"] = 0
     if cases != "":
-        master_data[date][geoid]["new"] += int(cases)
+        master_data[date][geoid]["new"] = int(cases)
+        master_data[date][geoid]["total"] += int(cases)
         current_totals[geoid] += int(cases)
-        master_data[date][geoid]["total"] = current_totals[geoid]
+        if debug:
+            print("new value is " + str(current_totals[geoid]))
     # print(geoid + " - " + date + " - " + country_code)
     return
 
@@ -99,11 +116,13 @@ def output_daily_slices(master_data):
         slice = {"date": d, "features": []}
         for g in master_data[d]:
             props = master_data[d][g]
-            if props["total"] == 0 and props["new"] == 0:
+            if "total" not in props:
+                print("WHAT " + g)
+            if props["total"] == 0 and ("new" not in props or props["new"] == 0):
                 continue
             feature = {"properties": {"geoid": g,
                                       "total": props["total"]}}
-            if props["new"] > 0:
+            if "new" in props and props["new"] > 0:
                 feature["properties"]["new"] = props["new"]
             slice["features"].append(feature)
         with open("d/" + d + ".json", "w") as f:
@@ -137,7 +156,8 @@ def output_aggregates(master_data, location_info, out_file):
                 country_total_acc[country_code] = 0
             if country_code not in country_acc_for_today:
                 country_acc_for_today[country_code] = country_total_acc[country_code]
-            country_acc_for_today[country_code] += int(master_data[d][geoid]["new"])
+            if "new" in master_data[d][geoid]:
+                country_acc_for_today[country_code] += int(master_data[d][geoid]["new"])
         for c in country_acc_for_today:
             aggregates[d].append(
                 {"cum_conf": country_acc_for_today[c], "deaths": 0, "code": c})
