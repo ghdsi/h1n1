@@ -128,26 +128,16 @@ def output_aggregates(master_data, location_info, out_file):
     country_total_acc = {}
     dates = sorted(master_data.keys())
     for d in dates:
-        print("\n\n" + d + "\n----")
         aggregates[d] = []
         # Total cases per country, only for today
         country_acc_for_today = {}
         for geoid in master_data[d]:
             country_code = location_info[geoid][-1]
-            if country_code == "US":
-                print(str(location_info[geoid]) + ", will add:")
-                print(master_data[d][geoid]["new"])
             if country_code not in country_total_acc:
                 country_total_acc[country_code] = 0
             if country_code not in country_acc_for_today:
-                if country_code == "US":
-                    print("Starting today " + d + " with " + str(country_total_acc[country_code]))
                 country_acc_for_today[country_code] = country_total_acc[country_code]
             country_acc_for_today[country_code] += int(master_data[d][geoid]["new"])
-            if country_code == "US":
-                print("On " + d + ", new US total " + str(country_acc_for_today[country_code]))
-                if country_acc_for_today[country_code] > 25000000:
-                    sys.exit(1)
         for c in country_acc_for_today:
             aggregates[d].append(
                 {"cum_conf": country_acc_for_today[c], "deaths": 0, "code": c})
