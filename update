@@ -2,6 +2,7 @@
 
 import csv
 import glob
+import json
 import os
 import sys
 
@@ -115,6 +116,24 @@ def process_csv_file(csv_file_path):
     print("Processed a total of " + str(grand_total) + " cases")
     return master_data
 
+def output_daily_slices(master_data):
+    dates = sorted(master_data.keys())
+    for d in dates:
+        slice = {"date": d, "features": []}
+        for g in master_data[d]:
+            props = master_data[d][g]
+            if props["total"] == 0 and props["new"] == 0:
+                continue
+            feature = {"properties": {"geoid": g,
+                                      "total": props["total"]}}
+            if props["new"] > 0:
+                feature["properties"]["new"] = props["new"]
+            slice["features"].append(feature)
+        with open("d/" + d + ".json", "w") as f:
+            f.write(json.dumps(slice))
+    with open("d/index.txt", "w") as f:
+        f.write("\n".join([d + ".json" for d in dates]))
+
 def update():
     # generate_full_data.generate_data(
         # os.path.join(SELF_DIR, "d"),
@@ -124,6 +143,7 @@ def update():
     # Note sure why there are two lines merged together for a couple of locations
     # os.system("./sanitize_location_info")
     master_data = process_csv_file(CSV_FILE)
+    output_daily_slices(master_data)
     # print(master_data)
     # Add any new daily file.
     os.system("git add d/*.json")
