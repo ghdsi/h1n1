@@ -90,9 +90,6 @@ def process_csv_data(rows):
     sorted_rows = sort_rows_chronologically(rows)
     for row in sorted_rows:
         process_single_row(row, master_data, current_totals)
-    grand_total = 0
-    for total, _ in enumerate(current_totals):
-        grand_total += total
     output_globals(master_data, current_totals)
     return master_data
 
@@ -127,18 +124,34 @@ def output_globals(master_data, totals):
 
 def output_aggregates(master_data, location_info, out_file):
     aggregates = {}
+    # Total cases per country
+    country_total_acc = {}
     dates = sorted(master_data.keys())
     for d in dates:
+        print("\n\n" + d + "\n----")
         aggregates[d] = []
+        # Total cases per country, only for today
         country_acc_for_today = {}
         for geoid in master_data[d]:
             country_code = location_info[geoid][-1]
+            if country_code == "US":
+                print(str(location_info[geoid]) + ", will add:")
+                print(master_data[d][geoid]["new"])
+            if country_code not in country_total_acc:
+                country_total_acc[country_code] = 0
             if country_code not in country_acc_for_today:
-                country_acc_for_today[country_code] = 0
-            country_acc_for_today[country_code] += master_data[d][geoid]["total"]
+                if country_code == "US":
+                    print("Starting today " + d + " with " + str(country_total_acc[country_code]))
+                country_acc_for_today[country_code] = country_total_acc[country_code]
+            country_acc_for_today[country_code] += int(master_data[d][geoid]["new"])
+            if country_code == "US":
+                print("On " + d + ", new US total " + str(country_acc_for_today[country_code]))
+                if country_acc_for_today[country_code] > 25000000:
+                    sys.exit(1)
         for c in country_acc_for_today:
             aggregates[d].append(
                 {"cum_conf": country_acc_for_today[c], "deaths": 0, "code": c})
+            country_total_acc[c] = int(country_acc_for_today[c])
     with open(out_file, "w") as f:
         f.write(json.dumps(aggregates))
 
