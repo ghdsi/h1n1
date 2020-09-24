@@ -113,7 +113,7 @@ def process_csv_file(csv_file_path):
     grand_total = 0
     for total, _ in enumerate(current_totals):
         grand_total += total
-    print("Processed a total of " + str(grand_total) + " cases")
+    output_globals(master_data, current_totals)
     return master_data
 
 def output_daily_slices(master_data):
@@ -133,6 +133,17 @@ def output_daily_slices(master_data):
             f.write(json.dumps(slice))
     with open("d/index.txt", "w") as f:
         f.write("\n".join([d + ".json" for d in dates]))
+
+def output_globals(master_data, totals):
+    grand_total = 0
+    latest_date = sorted(master_data.keys())[-1]
+    for total, _ in enumerate(totals):
+        grand_total += total
+    print("Processed a total of " + str(grand_total) + " cases, "
+          "latest one on " + latest_date)
+    globals_obj = {"caseCount": grand_total, "deaths": 0, "date": latest_date}
+    with open("globals.json", "w") as f:
+        f.write(json.dumps([globals_obj]))
 
 def update():
     # generate_full_data.generate_data(
