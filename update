@@ -9,7 +9,6 @@ import sys
 # from tools import data_util, generate_full_data
 
 CSV_FILE = "HealthMap_H1N1_Global_All_Languages_2009-2012.csv"
-LAT_LNG_DECIMAL_PLACES = 4
 SELF_DIR = os.path.dirname(os.path.realpath(__file__))
 
 FIELDS = {
@@ -45,20 +44,6 @@ def clean():
     for country in glob.glob("c/*.json"):
         os.remove(country)
 
-def round_latlng(l):
-    if "." not in l:
-        l += ".0000"
-    (intpart, dec) = l.split(".")
-    if len(dec) > LAT_LNG_DECIMAL_PLACES:
-        # Just truncate
-        dec = dec[0:4]
-    elif len(dec) < LAT_LNG_DECIMAL_PLACES:
-        dec += "0" * (LAT_LNG_DECIMAL_PLACES - len(dec))
-    return intpart + "." + dec
-
-def make_geoid(lat, lng):
-    return round_latlng(lat) + "|" + round_latlng(lng)
-
 def iso_date_from_datetime(dt):
     isodate = dt.split(" ")[0]
     assert isodate.count("-") == 2
@@ -66,7 +51,7 @@ def iso_date_from_datetime(dt):
     return isodate
 
 def process_single_row(r, master_data, current_totals):
-    geoid = make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
+    geoid = geo_util.make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
     country_code = country_converter.code_from_name(r[FIELDS["country"]])
     date = iso_date_from_datetime(r[FIELDS["datetime"]])
     if not geoid:
@@ -99,15 +84,10 @@ def sort_rows_chronologically(rows):
     rows.sort(key=row_chronological_sort_function)
     return rows
 
-def process_csv_file(csv_file_path):
+def process_csv_data(rows):
     master_data = {}
     current_totals = {}
-    all_rows = []
-    with open(csv_file_path) as f:
-        reader = csv.reader(f)
-        for row in reader:
-            all_rows.append(row)
-    sorted_rows = sort_rows_chronologically(all_rows)
+    sorted_rows = sort_rows_chronologically(rows)
     for row in sorted_rows:
         process_single_row(row, master_data, current_totals)
     grand_total = 0
@@ -153,8 +133,18 @@ def update():
     # data_util.retrieve_generable_data(".", should_overwrite=True, quiet=False)
     # Note sure why there are two lines merged together for a couple of locations
     # os.system("./sanitize_location_info")
-    master_data = process_csv_file(CSV_FILE)
+
+    all_rows = []
+    with open(CSV_FILE) as f:
+        reader = csv.reader(f)
+        for row in reader:
+            all_rows.append(row)
+    master_data = process_csv_data(all_rows)
+    # location_data = extra
     output_daily_slices(master_data)
+    location_info_extractor.extract_location_info_from_csv(
+        all_rows, FIELDS["country"], FIELDS["location"],
+        FIELDS["latitude"], FIELDS["longitude"], "location_info.data")
     # print(master_data)
     # Add any new daily file.
     os.system("git add d/*.json")
@@ -163,5 +153,7 @@ if __name__ == "__main__":
     if check_for_common_repo():
         sys.path.insert(0, "../common/tools")
         import country_converter
+        import geo_util
+        import location_info_extractor
         clean()
         update()
