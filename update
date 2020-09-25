@@ -57,9 +57,6 @@ def copy_over(master_data, new_day, current_totals):
 
 def process_single_row(r, master_data, current_totals):
     geoid = geo_util.make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
-    debug = False
-    if geoid == '31.2409|-99.2286':
-        debug = True
     country_code = country_converter.code_from_name(r[FIELDS["country"]])
     date = iso_date_from_datetime(r[FIELDS["datetime"]])
     if not geoid:
@@ -72,14 +69,10 @@ def process_single_row(r, master_data, current_totals):
         print("WARNING Counldn't infer country in row " + str(r))
         return
     if geoid not in current_totals:
-        if debug:
-            print("geoid not in current_totals")
         current_totals[geoid] = 0
     if date not in master_data:
         copy_over(master_data, date, current_totals)
     if geoid not in master_data[date]:
-        if debug:
-            print("geoid not in master data for date " + date)
         master_data[date][geoid] = {}
     cases = r[FIELDS["confirmed-cases"]].strip()
     master_data[date][geoid]["total"] = current_totals[geoid]
@@ -89,9 +82,6 @@ def process_single_row(r, master_data, current_totals):
         master_data[date][geoid]["new"] = int(cases)
         master_data[date][geoid]["total"] += int(cases)
         current_totals[geoid] += int(cases)
-        if debug:
-            print("new value is " + str(current_totals[geoid]))
-    # print(geoid + " - " + date + " - " + country_code)
     return
 
 def row_chronological_sort_function(row):
