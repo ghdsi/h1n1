@@ -69,19 +69,19 @@ def process_single_row(r, master_data, current_totals):
         print("WARNING Counldn't infer country in row " + str(r))
         return
     if geoid not in current_totals:
-        current_totals[geoid] = 0
+        current_totals[geoid] = {"cases": 0, "deaths": 0}
     if date not in master_data:
         copy_over(master_data, date, current_totals)
     if geoid not in master_data[date]:
         master_data[date][geoid] = {}
     cases = r[FIELDS["confirmed-cases"]].strip()
-    master_data[date][geoid]["total"] = current_totals[geoid]
+    master_data[date][geoid]["total"] = current_totals[geoid]["cases"]
     if cases == "":
         master_data[date][geoid]["new"] = 0
     if cases != "":
         master_data[date][geoid]["new"] = int(cases)
         master_data[date][geoid]["total"] += int(cases)
-        current_totals[geoid] += int(cases)
+        current_totals[geoid]["cases"] += int(cases)
     return
 
 def row_chronological_sort_function(row):
@@ -124,7 +124,7 @@ def output_globals(master_data, totals):
     grand_total = 0
     latest_date = sorted(master_data.keys())[-1]
     for total, _ in enumerate(totals):
-        grand_total += total
+        grand_total += total["cases"]
     print("Processed a total of " + str(grand_total) + " cases, "
           "latest one on " + latest_date)
     globals_obj = {"caseCount": grand_total, "deaths": 0, "date": latest_date}
