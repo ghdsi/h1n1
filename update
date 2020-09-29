@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import csv
-import glob
 import json
 import os
 import sys
@@ -37,12 +36,6 @@ def check_for_common_repo():
         print("cd .. && git clone git@github.com:globaldothealth/common.git")
         return False
     return True
-
-def clean():
-    for daily in glob.glob("d/*.json"):
-        os.remove(daily)
-    for country in glob.glob("c/*.json"):
-        os.remove(country)
 
 def iso_date_from_datetime(dt):
     isodate = dt.split(" ")[0]
@@ -182,5 +175,6 @@ if __name__ == "__main__":
         import country_converter
         import geo_util
         import location_info_extractor
-        clean()
+        import util
+        util.clean()
         update()
