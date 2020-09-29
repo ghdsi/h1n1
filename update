@@ -68,6 +68,7 @@ def process_single_row(r, master_data, current_totals):
     if geoid not in master_data[date]:
         master_data[date][geoid] = {}
     cases = r[FIELDS["confirmed-cases"]].strip()
+    deaths = r[FIELDS["confirmed-deaths"]].strip()
     master_data[date][geoid]["total"] = current_totals[geoid]["cases"]
     if cases == "":
         master_data[date][geoid]["new"] = 0
@@ -75,6 +76,8 @@ def process_single_row(r, master_data, current_totals):
         master_data[date][geoid]["new"] = int(cases)
         master_data[date][geoid]["total"] += int(cases)
         current_totals[geoid]["cases"] += int(cases)
+    if deaths != "":
+        current_totals[geoid]["deaths"] += int(deaths)
     return
 
 def row_chronological_sort_function(row):
@@ -115,12 +118,18 @@ def output_daily_slices(master_data):
 
 def output_globals(master_data, totals):
     grand_total = 0
+    grand_total_deaths = 0
     latest_date = sorted(master_data.keys())[-1]
-    for total, _ in enumerate(totals):
-        grand_total += total["cases"]
+    for geoid in totals:
+        obj = totals[geoid]
+        if "cases" in obj:
+            grand_total += obj["cases"]
+        if "deaths" in obj:
+            grand_total_deaths += obj["deaths"]
     print("Processed a total of " + str(grand_total) + " cases, "
           "latest one on " + latest_date)
-    globals_obj = {"caseCount": grand_total, "deaths": 0, "date": latest_date}
+    globals_obj = {"caseCount": grand_total, "deaths": grand_total_deaths,
+                   "date": latest_date}
     with open("globals.json", "w") as f:
         f.write(json.dumps([globals_obj]))
 
