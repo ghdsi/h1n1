@@ -46,7 +46,7 @@ def iso_date_from_datetime(dt):
 def copy_over(master_data, new_day, current_totals):
     master_data[new_day] = {}
     for country in current_totals:
-        master_data[new_day][country] = {"total": current_totals[country]}
+        master_data[new_day][country] = {"total": current_totals[country]["cases"]}
 
 def process_single_row(r, master_data, current_totals):
     geoid = geo_util.make_geoid(r[FIELDS["latitude"]], r[FIELDS["longitude"]])
@@ -102,8 +102,6 @@ def output_daily_slices(master_data):
         slice = {"date": d, "features": []}
         for g in master_data[d]:
             props = master_data[d][g]
-            if "total" not in props:
-                print("WHAT " + g)
             if props["total"] == 0 and ("new" not in props or props["new"] == 0):
                 continue
             feature = {"properties": {"geoid": g,
@@ -112,7 +110,7 @@ def output_daily_slices(master_data):
                 feature["properties"]["new"] = props["new"]
             slice["features"].append(feature)
         with open("d/" + d + ".json", "w") as f:
-            f.write(json.dumps(slice))
+            f.write(json.dumps(slice, sort_keys=True))
     with open("d/index.txt", "w") as f:
         f.write("\n".join([d + ".json" for d in dates]))
 
@@ -131,7 +129,7 @@ def output_globals(master_data, totals):
     globals_obj = {"caseCount": grand_total, "deaths": grand_total_deaths,
                    "date": latest_date}
     with open("globals.json", "w") as f:
-        f.write(json.dumps([globals_obj]))
+        f.write(json.dumps([globals_obj], sort_keys=True))
 
 def output_aggregates(master_data, location_info, out_file):
     aggregates = {}
@@ -155,7 +153,7 @@ def output_aggregates(master_data, location_info, out_file):
                 {"cum_conf": country_acc_for_today[c], "deaths": 0, "code": c})
             country_total_acc[c] = int(country_acc_for_today[c])
     with open(out_file, "w") as f:
-        f.write(json.dumps(aggregates))
+        f.write(json.dumps(aggregates, sort_keys=True))
 
 def update():
 
@@ -173,8 +171,8 @@ def update():
         all_rows, FIELDS["country"], FIELDS["location"],
         FIELDS["latitude"], FIELDS["longitude"])
     location_info_extractor.output_location_info(location_info, "location_info.data")
+    os.system("../common/tools/sanitize_location_info")
     output_aggregates(master_data, location_info, "aggregate.json")
-    # print(master_data)
     # Add any new daily file.
     os.system("git add d/*.json")
 
